@@ -20,7 +20,9 @@ import java.io.IOException;
 import de.learnlib.acex.AcexAnalyzers;
 import de.learnlib.algorithm.LearningAlgorithm.MealyLearner;
 import de.learnlib.algorithm.ttt.mealy.TTTLearnerMealy;
+import de.learnlib.datastructure.observationtable.writer.ObservationTableASCIIWriter;
 import de.learnlib.filter.statistic.oracle.MealyCounterOracle;
+import de.learnlib.oracle.MembershipOracle;
 import de.learnlib.oracle.EquivalenceOracle.MealyEquivalenceOracle;
 import de.learnlib.oracle.MembershipOracle.MealyMembershipOracle;
 import de.learnlib.oracle.equivalence.MealyWMethodEQOracle;
@@ -29,24 +31,24 @@ import de.learnlib.testsupport.example.mealy.ExampleOpenSSH;
 import de.learnlib.testsupport.example.mealy.ExampleOpenSSH.Input;
 import de.learnlib.testsupport.example.mealy.ExampleOpenSSH.Output;
 import de.learnlib.util.Experiment.MealyExperiment;
+import de.learnlib.util.mealy.MealyUtil;
 import de.learnlib.util.statistic.SimpleProfiler;
 import net.automatalib.alphabet.Alphabet;
 import net.automatalib.automaton.transducer.MealyMachine;
 import net.automatalib.serialization.dot.GraphDOT;
 import net.automatalib.visualization.Visualization;
-import de.learnlib.algorithm.lstar.mealy.ClassicLStarMealy;
-import de.learnlib.algorithm.lstar.mealy.ClassicLStarMealyBuilder;
+import de.learnlib.algorithm.lstar.mealy.ExtensibleLStarMealyBuilder;
 
 /**
  * This example shows the usage of a learning algorithm and an equivalence test as part of an experiment in order to
  * learn a simulated SUL (system under learning).
  */
 @SuppressWarnings("PMD.SystemPrintln")
-public final class ExampleLearnOpenSSHStats {
+public final class ExampleLearnOpenSSHStatsLstar {
 
     private static final int EXPLORATION_DEPTH = 4;
 
-    private ExampleLearnOpenSSHStats () {
+    private ExampleLearnOpenSSHStatsLstar () {
         // prevent instantiation
     }
 
@@ -60,12 +62,15 @@ public final class ExampleLearnOpenSSHStats {
         // create a membership oracle
         MealyMembershipOracle<Input, Output> sul = new MealySimulatorOracle<>(mealy);
         MealyCounterOracle<Input, Output> mqOracle = new MealyCounterOracle<>(sul);
-                
-        MealyLearner<Input, Output> learner = new TTTLearnerMealy<>(alphabet, mqOracle, AcexAnalyzers.LINEAR_FWD);
+
+        MealyLearner<Input, Output> lstar =
+            new ExtensibleLStarMealyBuilder<Input, Output>().withAlphabet(alphabet)
+                                                            .withOracle(mqOracle)
+                                                            .create();
 
         MealyEquivalenceOracle<Input, Output> wMethod = new MealyWMethodEQOracle<>(mqOracle, EXPLORATION_DEPTH);
 
-        MealyExperiment<Input, Output> experiment = new MealyExperiment<>(learner, wMethod, alphabet);
+        MealyExperiment<Input, Output> experiment = new MealyExperiment<>(lstar, wMethod, alphabet); 
 
         experiment.setProfile(true);
         experiment.setLogModels(true);
